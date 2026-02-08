@@ -29,6 +29,13 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-app.listen(port, () => {console.log(`server running on port: ${port}`)
 connectDB()
-});
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`Server running on port: ${port}`);
+    });
+  })
+  .catch((error) => {
+    console.log("Failed to connect to mongoDB: ", error);
+    process.exit(1);
+  });

@@ -1,4 +1,5 @@
 import { sendWelcomeEmail } from "../emails/emailHandler.js";
+import { JWT_COOKIE_KEY } from "../lib/constants.js";
 import { ENV } from "../lib/env.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
@@ -65,4 +66,38 @@ export const signup = async (req, res) => {
       .status(500)
       .json({ message: "Something went wrong. Internal server error" });
   }
+};
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" }); //Never tell client which one's incorrect
+    }
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Invalid credentials" }); //Never tell client which one's incorrect
+    }
+
+    const { _id, fullName, profilePic } = user;
+    generateToken(_id, res);
+
+    res.status(200).json({
+      _id,
+      fullName,
+      email: user.email,
+      profilePic,
+    });
+  } catch (error) {
+    console.log("Error in logging controller: ", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const logout = (_, res) => {
+  res.cookie(JWT_COOKIE_KEY, "", { maxAge: 0 });
+  res.status(200).json({ message: "Logged out successfully" });
 };

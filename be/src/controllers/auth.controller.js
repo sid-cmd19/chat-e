@@ -1,6 +1,8 @@
+import { sendWelcomeEmail } from "../emails/emailHandler.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
+import "dotenv/config";
 
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -38,10 +40,10 @@ export const signup = async (req, res) => {
     if (newUser) {
       const savedUser = await newUser.save();
       generateToken(savedUser._id, res);
-      
+
       const { _id, fullName, email, profilePic } = newUser;
 
-      return res.status(201).json({
+      res.status(201).json({
         _id,
         fullName,
         email,
@@ -49,9 +51,14 @@ export const signup = async (req, res) => {
       });
 
       // To-Do Send a welcome email to the user
+      try {
+        await sendWelcomeEmail(email, fullName, process.env.CLCIENT_URL);
+      } catch (error) {
+        console.log("Faile to send welcome email: ", error);
+      }
+      return;
     }
     return res.status(400).json({ message: "Invalid user data" });
-
   } catch (error) {
     console.log("Error in signup controller: ", error);
     res

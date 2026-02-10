@@ -1,4 +1,5 @@
 import { sendWelcomeEmail } from "../emails/emailHandler.js";
+import cloudinary from "../lib/cloudinary.js";
 import { JWT_COOKIE_KEY } from "../lib/constants.js";
 import { ENV } from "../lib/env.js";
 import { generateToken } from "../lib/utils.js";
@@ -104,4 +105,29 @@ export const login = async (req, res) => {
 export const logout = (_, res) => {
   res.cookie(JWT_COOKIE_KEY, "", { maxAge: 0 });
   res.status(200).json({ message: "Logged out successfully" });
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { profilePic } = req.body;
+    if (!profilePic) {
+      res.status(400).json({ message: "Profile picture required" });
+    }
+    const userId = req.user._id;
+
+    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        profilePic: uploadResponse.source_url,
+      },
+      { new: true }
+    ).select("-password");
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.log("Couldn't update profile picture: ", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
